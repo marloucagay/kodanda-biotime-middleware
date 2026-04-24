@@ -77,7 +77,16 @@ async function syncLogs() {
       console.log(colors.yellow("[SYNC] No logs to process"));
     }
 
-    await updateLastSyncTime(now.toISOString());
+    let nextSyncTime = start;
+
+    if (cleanedLogs.length > 0) {
+      nextSyncTime = cleanedLogs.reduce((max, log) => {
+        const ts = moment(log.timestamp);
+        return ts.isAfter(max) ? ts : max;
+      }, start);
+    }
+
+    await updateLastSyncTime(nextSyncTime.toISOString());
 
     console.log(colors.green("[SYNC] Sync complete"));
   } catch (err) {

@@ -44,3 +44,21 @@ export async function webBundy(punchData) {
     return false;
   }
 }
+
+export async function computePunch(punchData) {
+  try {
+    await axios.post(`${HCM_URL}/recompute-punch-vinc`, punchData, {
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": API_KEY,
+        Authorization: `Bearer ${AUTH_KEY}`,
+        "x-org": punchData.orgId,
+      },
+    });
+
+    return true;
+  } catch (error) {
+    console.error("Error recomputing punch record:", error.message);
+    return false;
+  }
+}
