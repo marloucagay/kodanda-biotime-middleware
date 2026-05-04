@@ -123,6 +123,27 @@ export async function updatePunchRecords(logs) {
         }
       }
 
+      if (log.type === "OUT" && !punchData.punchIn) {
+        console.log(
+          colors.cyan(`Correcting OUT → IN (first log) (${employeeId})`),
+        );
+
+        punchData.punchIn = ts.format("YYYY-MM-DD HH:mm:ss");
+
+        punchData.punchInInfo = {
+          inferred: true,
+          correctedFrom: "OUT",
+          deviceInfo: log.deviceAlias || log.deviceId,
+          deviceId: log.deviceId,
+          timestamp: punchData.punchIn,
+          updatedAt: moment().toISOString(),
+          source: "biometric",
+        };
+
+        updatedPunchMap.set(punchData.punchId, punchData);
+        continue;
+      }
+
       /** =======================
        * HANDLE OUT
        ======================= */
