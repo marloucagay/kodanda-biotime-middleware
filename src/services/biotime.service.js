@@ -15,7 +15,6 @@ export async function fetchLogs({ startTime, endTime }) {
 
       try {
         const token = await getToken();
-        console.log(token, "TOKEN");
         const response = await client.get("/", {
           headers: {
             Authorization: `Token ${token}`,
@@ -38,14 +37,13 @@ export async function fetchLogs({ startTime, endTime }) {
         const normalized = logs.map(normalizeLog);
         allLogs.push(...normalized);
 
-        console.log(`📄 Page ${page} fetched (${logs.length} logs)`);
+        console.log(`Page ${page} fetched (${logs.length} logs)`);
 
         hasNext = !!res.next;
         if (hasNext) page++;
       } catch (err) {
-        // 🔴 Detect expired session/token
         if (err.response?.status === 401) {
-          console.warn("⚠️ Session expired, re-authenticating...");
+          console.warn("Session expired, re-authenticating...");
 
           clearToken();
           await login();
@@ -56,7 +54,6 @@ export async function fetchLogs({ startTime, endTime }) {
         }
       }
 
-      // 🔁 Retry ONCE
       if (retry) {
         const token = await getToken();
 
@@ -82,9 +79,7 @@ export async function fetchLogs({ startTime, endTime }) {
         const normalized = logs.map(normalizeLog);
         allLogs.push(...normalized);
 
-        console.log(
-          `📄 Page ${page} fetched after re-auth (${logs.length} logs)`,
-        );
+        console.log(`Page ${page} fetched after re-auth (${logs.length} logs)`);
 
         hasNext = !!res.next;
         if (hasNext) page++;
@@ -93,7 +88,7 @@ export async function fetchLogs({ startTime, endTime }) {
 
     return allLogs;
   } catch (err) {
-    console.error("❌ BioTime fetch error:", err);
+    console.error("BioTime fetch error:", err);
     throw err;
   }
 }

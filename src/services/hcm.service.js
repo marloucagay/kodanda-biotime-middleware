@@ -9,7 +9,6 @@ export async function getEmployeePunchRecord(
   dateKey,
   orgId = "gti",
 ) {
-  console.log(HCM_URL);
   const request = await axios.get(
     `${HCM_URL}/punch/transaction-date/temp/${employeeId}/${dateKey}/${orgId}`,
     {
