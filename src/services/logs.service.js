@@ -32,7 +32,7 @@ export async function saveLogs(logs) {
 
       const ref = db.collection("biometric_logs").doc(docId);
 
-      batch.set(ref, {
+      batch.create(ref, {
         ...log,
         createdAt: new Date().toISOString(),
       });

@@ -18,6 +18,88 @@ dotenv.config();
 let isIncrementalRunning = false;
 let isReconRunning = false;
 
+// Global job state
+let activeJob = null;
+
+// Queued Jobs FIFO pattern
+const queuedJobs = [];
+
+function acquireJobLock(jobName) {
+  if (activeJob) {
+    console.log(
+      colors.yellow(
+        `[${jobName}] Queued because ${activeJob} is currently running`,
+      ),
+    );
+
+    return false;
+  }
+
+  activeJob = {
+    name: jobName,
+    startedAt: new Date(),
+  };
+
+  console.log(
+    colors.cyan(
+      `[${jobName}] Lock acquired at ${moment().format("YYYY-MM-DD HH:mm:ss")}`,
+    ),
+  );
+
+  return true;
+}
+
+/**
+ * Release global lock
+ */
+async function releaseJobLock() {
+  if (!activeJob) return;
+
+  console.log(
+    colors.cyan(
+      `[${activeJob.name}] Lock released at ${moment().format(
+        "YYYY-MM-DD HH:mm:ss",
+      )}`,
+    ),
+  );
+
+  activeJob = null;
+
+  /**
+   * Process next queued job
+   */
+  if (queuedJobs.length > 0) {
+    const nextJob = queuedJobs.shift();
+
+    console.log(colors.magenta(`[QUEUE] Starting queued job: ${nextJob.name}`));
+
+    /**
+     * Run queued job async
+     * Prevent blocking release flow
+     */
+    setTimeout(async () => {
+      try {
+        await nextJob.fn();
+      } catch (err) {
+        console.error(
+          colors.red(`[QUEUE ERROR] ${nextJob.name}: ${err.message}`),
+        );
+      }
+    }, 0);
+  }
+}
+
+// Queue helper
+function enqueueJob(name, fn) {
+  queuedJobs.push({
+    name,
+    fn,
+    queuedAt: new Date(),
+  });
+
+  console.log(colors.gray(`[QUEUE] Total queued jobs: ${queuedJobs.length}`));
+}
+
 /**
  * Shared processor
  */
@@ -59,13 +141,13 @@ async function processFetchedLogs(logs, context = "SYNC") {
  * Incremental sync
  */
 async function syncLogs() {
-  if (isIncrementalRunning) {
-    console.log(colors.yellow("[SYNC] Previous incremental job still running"));
+  const jobName = "SYNC";
+
+  if (!acquireJobLock(jobName)) {
+    enqueueJob(jobName, syncLogs);
 
     return;
   }
-
-  isIncrementalRunning = true;
 
   try {
     console.log(colors.cyan("\n[SYNC] Starting biometric sync..."));
@@ -112,7 +194,7 @@ async function syncLogs() {
   } catch (err) {
     console.error(colors.red(`[SYNC ERROR] ${err.message}`));
   } finally {
-    isIncrementalRunning = false;
+    await releaseJobLock();
   }
 }
 
@@ -120,15 +202,11 @@ async function syncLogs() {
  * Whole day reconciliation
  */
 async function syncWholeDayLogs(date, label = "RECON") {
-  if (isReconRunning) {
-    console.log(
-      colors.yellow(`[${label}] Previous reconciliation still running`),
-    );
+  if (!acquireJobLock(label)) {
+    enqueueJob(label, () => syncWholeDayLogs(date, label));
 
     return;
   }
-
-  isReconRunning = true;
 
   try {
     const start = moment(date).startOf("day");
@@ -159,7 +237,7 @@ async function syncWholeDayLogs(date, label = "RECON") {
   } catch (err) {
     console.error(colors.red(`[${label} ERROR] ${err.message}`));
   } finally {
-    isReconRunning = false;
+    await releaseJobLock();
   }
 }
 

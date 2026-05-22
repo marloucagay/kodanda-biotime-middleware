@@ -155,9 +155,9 @@ export function deduplicateLogs(logs, windowSeconds = 30) {
         result.push(log);
         lastAccepted = log;
       } else {
-        console.log(
-          `Skipping duplicate log (${log.employeeId}) within ${diff}s`,
-        );
+        // console.log(
+        //   `Skipping duplicate log (${log.employeeId}) within ${diff}s`,
+        // );
       }
     }
   }
