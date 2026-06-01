@@ -106,6 +106,30 @@ export async function updatePunchRecords(logs) {
           continue;
         }
 
+        // Infer OUT from second IN
+        if (
+          punchData.punchIn &&
+          punchData.punchOut &&
+          !isWithinWindow(punchData.punchOut, ts, 120)
+        ) {
+          console.log(
+            colors.cyan(`Inferring OUT from second IN (${employeeId})`),
+          );
+
+          punchData.punchOut = ts.format("YYYY-MM-DD HH:mm:ss");
+
+          punchData.punchOutInfo = {
+            inferred: true,
+            deviceInfo: log.deviceAlias || log.deviceId,
+            deviceId: log.deviceId,
+            timestamp: punchData.punchOut,
+            updatedAt: moment().toISOString(),
+            source: "biometric",
+          };
+
+          updatedPunchMap.set(punchData.punchId, punchData);
+          continue;
+        }
         // Normal IN
         if (!punchData.punchIn || ts.isBefore(moment(punchData.punchIn))) {
           punchData.punchIn = ts.format("YYYY-MM-DD HH:mm:ss");

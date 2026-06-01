@@ -17,7 +17,8 @@ dotenv.config();
 
 const ORG_IDS = [
   "gti",
-  "wn-energy",
+  // "wn-energy",
+  // "golden-equity",
   // add more orgIds here
 ];
 
@@ -74,7 +75,7 @@ async function getProblematicPunchRecords(date) {
   /**
    * Missing punchIn OR punchOut only
    */
-  return records.filter((record) => !record.punchIn || !record.punchOut);
+  return records.filter((record) => record.punchIn && !record.punchOut);
 }
 
 /**
@@ -135,6 +136,31 @@ function reconcilePunchRecord(punchData, employeeLogs) {
         !punchData.punchOut &&
         isValidOutCandidate(punchData.punchIn, ts) &&
         !isWithinWindow(punchData.punchIn, ts, 120)
+      ) {
+        punchData.punchOut = ts.format("YYYY-MM-DD HH:mm:ss");
+
+        punchData.punchOutInfo = {
+          inferred: true,
+          reconciled: true,
+          reconciliationType: "manual-script",
+          deviceInfo: log.deviceAlias || log.deviceId,
+          deviceId: log.deviceId,
+          timestamp: punchData.punchOut,
+          updatedAt: moment().toISOString(),
+          source: "biometric",
+        };
+
+        console.log(
+          colors.cyan(`Inferred OUT from second IN (${punchData.employeeId})`),
+        );
+
+        continue;
+      }
+
+      if (
+        punchData.punchIn &&
+        punchData.punchOut &&
+        !isWithinWindow(punchData.punchOut, ts, 120)
       ) {
         punchData.punchOut = ts.format("YYYY-MM-DD HH:mm:ss");
 
@@ -431,7 +457,7 @@ if (args.length === 0) {
 }
 
 const targetDate = args[0];
-
+console.log(targetDate, "DATE");
 reconcilePunches(targetDate)
   .then(() => {
     console.log(colors.green("Done"));
