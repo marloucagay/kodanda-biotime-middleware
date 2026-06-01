@@ -110,6 +110,7 @@ export async function updatePunchRecords(logs) {
         if (
           punchData.punchIn &&
           punchData.punchOut &&
+          ts.isAfter(moment(punchData.punchOut)) &&
           !isWithinWindow(punchData.punchOut, ts, 120)
         ) {
           console.log(

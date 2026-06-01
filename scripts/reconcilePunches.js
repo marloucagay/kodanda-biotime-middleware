@@ -157,10 +157,11 @@ function reconcilePunchRecord(punchData, employeeLogs) {
         continue;
       }
 
-      if (
+        if (
         punchData.punchIn &&
-        punchData.punchOut &&
-        !isWithinWindow(punchData.punchOut, ts, 120)
+        !punchData.punchOut &&
+        isValidOutCandidate(punchData.punchIn, ts) &&
+        !isWithinWindow(punchData.punchIn, ts, 120)
       ) {
         punchData.punchOut = ts.format("YYYY-MM-DD HH:mm:ss");
 
